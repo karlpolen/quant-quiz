@@ -1,0 +1,20 @@
+---
+title: "Quantitative Skills Demonstration"
+author: "Karl Polen"
+date: "May 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Greetings
+
+Thank you for applying for the position of Sr. Portfolio Manager -- Equities with the Arizona State Retirement.  At ASRS we run a quantitative style equities portfolio with enhanced index, factor and alpha overlay components.  The person hired for this position will be expected to have very strong quantitative skill sets and the purpose of this exercise is to verify that applicants will be well matched to the requirements of the position.
+
+We have provided sample data in a CSV file called "asset_returns.csv" which was provided in a folder along with this document.  The document you are reading has been provided as both an html and a markdown file.  
+
+You may respond using whatever analytical platform you are comfortable with.  If you use R, Python or another programming language compatible with markdown, you may embed your answers in the markdown.  Please return both the markdown file with code and a compiled HTML version so we can check your answers.  If you use Microsoft products, please provide any excel files you produce with adequate documentation.  If you want, you can link the results of your analysis to a word or powerpoint presentation.
+
+Make sure your answers are readable and well labeled to avoid any confusion in understanding your work.  
