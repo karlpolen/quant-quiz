@@ -5,7 +5,7 @@ date: "May 2, 2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE,message=F,warning=F}
 knitr::opts_chunk$set(echo = TRUE)
 data=read.csv("asset_returns.csv")
 data$Date=as.Date(data$Date,format="%m/%d/%Y")
@@ -17,6 +17,7 @@ mysterylong=gather(mystery,"Portfolio","Return",-Date)
 assetslong=gather(assets,"Asset_Class","Return",-Date)
 library(fBasics)
 library(ggplot2)
+library(knitr)
 ```
 
 ## Greetings and Instructions
@@ -71,7 +72,9 @@ ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
 ```
 
 
-## Portfolio Construction
+## Portfolio Construction and Analysis
+
+### Some 3 asset model portfolios
 
 Now we will consider, ways of combining the three mystery assets.
 
@@ -118,7 +121,7 @@ Similarly, we can calculate a tangency (max sharpe ratio) portfolio.  The propor
 $$\Sigma^{-1} (R_p - R_f)$$
 where $R_p$ is a vector of portfolio returns and $R_f$ is the risk free rate.  
 
-This produces relatively which then can be normalized to percentages adding to one.
+This produces vector of relative weights which then can be normalized to percentages adding to one.
 
 Using the sample mean returns for the portfolio and 90 day Libor as the expected values, the tangency portfolio is calculated as follows.
 
@@ -144,7 +147,57 @@ tansd=sqrt(tanport%*%covmat%*%tanport)
 tansd
 ```
 
+On your own, calculate the expected return and standard deviation of an equal weight portfolio of the three mystery assets.
 
+### Calculate a one year return and standard deviation from the monthly data
+
+These are volatile arithmetic returns and they need to be adjusted to geometric returns fro compunding.  While there are different versions, we will use a formula Bill Sharpe's Stanford University website (https://web.stanford.edu/~wfsharpe/mia/rr/mia_rr3.htm)
+
+(1+g)^n = ((1+r)^2 - sd^2)^(n/2)
+
+where g is the geometric return, r is the arithmetric return and sd is the standard deviation.
+
+The one year standard deviation for the portfolio is calculated as the monthly standard deviation times the square root of 12.
+
+### Now calculate equal weight stats
+
+```{r, echo=FALSE}
+weq=c(1,1,1)/3
+eqsd=sqrt(weq%*%covmat%*%weq)
+eqer=weq%*%ervec
+```
+
+### build a table of comparative weights
+
+```{r, echo=FALSE}
+wmat=cbind(weq,tanport,minport)
+rownames(wmat)=c("A","B","C")
+colnames(wmat)=portnames=c("Equal","Tangency","MinVar")
+kable(wmat,digits=2)
+```
+
+### build a table of portfolio stats
+
+```{r, echo=FALSE}
+ers=c(eqer,ertan,ermin)*100
+sds=c(eqsd,tansd,minvol)*100
+pval_1mo=c(pnorm(0,eqer,eqsd),pnorm(0,ertan,tansd),pnorm(0,ermin,minvol))
+pval_1yr=c(
+  pnorm(0,-1+((1+eqer)^2-eqsd^2)^6,eqsd*sqrt(12)),
+  pnorm(0,-1+((1+ertan)^2-tansd^2)^6,tansd*sqrt(12)),
+  pnorm(0,-1+((1+ermin)^2-minvol^2)^6,minvol*sqrt(12))
+)
+           
+pval_3yr=c(
+  pnorm(0,-1+((1+eqer)^2-eqsd^2)^18,eqsd*sqrt(36)),
+  pnorm(0,-1+((1+ertan)^2-tansd^2)^18,tansd*sqrt(36)),
+  pnorm(0,-1+((1+ermin)^2-minvol^2)^18,minvol*sqrt(36))
+)
+statmat=cbind(ers,sds,pval_1mo,pval_1yr,pval_3yr)
+colnames(statmat)=c("Exp_Return","StdDev","Pval_1Mo","Pval_1Yr","Pval_3Yr")
+rownames(statmat)=portnames
+kable(statmat,digits=2)
+```
 
 
 ## Resampling
