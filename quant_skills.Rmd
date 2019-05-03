@@ -110,6 +110,7 @@ Finally, please calculate the expected return of the minimum variance portfolio 
 
 ```{r, echo=F}
 ervec=apply(mystery[,-1],2,mean)
+sdvec=apply(mystery[,-1],2,sd)
 ermin=as.vector(ervec%*%minport)
 names(ermin)="ExpReturn"
 ermin
@@ -153,7 +154,7 @@ On your own, calculate the expected return and standard deviation of an equal we
 
 These are volatile arithmetic returns and they need to be adjusted to geometric returns fro compunding.  While there are different versions, we will use a formula Bill Sharpe's Stanford University website (https://web.stanford.edu/~wfsharpe/mia/rr/mia_rr3.htm)
 
-(1+g)^n = ((1+r)^2 - sd^2)^(n/2)
+(1+g)^n = ((1+r)^2 - sd^2) ^ (n/2)
 
 where g is the geometric return, r is the arithmetric return and sd is the standard deviation.
 
@@ -179,23 +180,31 @@ kable(wmat,digits=2)
 ### build a table of portfolio stats
 
 ```{r, echo=FALSE}
-ers=c(eqer,ertan,ermin)*100
-sds=c(eqsd,tansd,minvol)*100
-pval_1mo=c(pnorm(0,eqer,eqsd),pnorm(0,ertan,tansd),pnorm(0,ermin,minvol))
+ers=c(eqer,ertan,ermin,ervec)*100
+sds=c(eqsd,tansd,minvol,sdvec)*100
+pval_1mo=c(pnorm(0,eqer,eqsd),pnorm(0,ertan,tansd),pnorm(0,ermin,minvol),
+           pnorm(0,ervec[1],sdvec[1]),pnorm(0,ervec[2],sdvec[2]),
+           pnorm(0,ervec[3],sdvec[3]))
 pval_1yr=c(
   pnorm(0,-1+((1+eqer)^2-eqsd^2)^6,eqsd*sqrt(12)),
   pnorm(0,-1+((1+ertan)^2-tansd^2)^6,tansd*sqrt(12)),
-  pnorm(0,-1+((1+ermin)^2-minvol^2)^6,minvol*sqrt(12))
+  pnorm(0,-1+((1+ermin)^2-minvol^2)^6,minvol*sqrt(12)),
+  pnorm(0,-1+((1+ervec[1])^2-sdvec[1]^2)^6,sdvec[1]*sqrt(12)),
+  pnorm(0,-1+((1+ervec[2])^2-sdvec[2]^2)^6,sdvec[2]*sqrt(12)),
+  pnorm(0,-1+((1+ervec[3])^2-sdvec[3]^2)^6,sdvec[3]*sqrt(12))
 )
            
 pval_3yr=c(
   pnorm(0,-1+((1+eqer)^2-eqsd^2)^18,eqsd*sqrt(36)),
   pnorm(0,-1+((1+ertan)^2-tansd^2)^18,tansd*sqrt(36)),
-  pnorm(0,-1+((1+ermin)^2-minvol^2)^18,minvol*sqrt(36))
+  pnorm(0,-1+((1+ermin)^2-minvol^2)^18,minvol*sqrt(36)),
+  pnorm(0,-1+((1+ervec[1])^2-sdvec[1]^2)^18,sdvec[1]*sqrt(36)),
+  pnorm(0,-1+((1+ervec[2])^2-sdvec[2]^2)^18,sdvec[2]*sqrt(36)),
+  pnorm(0,-1+((1+ervec[3])^2-sdvec[3]^2)^18,sdvec[3]*sqrt(36))
 )
 statmat=cbind(ers,sds,pval_1mo,pval_1yr,pval_3yr)
 colnames(statmat)=c("Exp_Return","StdDev","Pval_1Mo","Pval_1Yr","Pval_3Yr")
-rownames(statmat)=portnames
+rownames(statmat)=c(portnames,"A","B","C")
 kable(statmat,digits=2)
 ```
 

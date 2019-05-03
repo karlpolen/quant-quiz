@@ -276,7 +276,7 @@ $(document).ready(function () {
 <div id="calculate-a-one-year-return-and-standard-deviation-from-the-monthly-data" class="section level3">
 <h3>Calculate a one year return and standard deviation from the monthly data</h3>
 <p>These are volatile arithmetic returns and they need to be adjusted to geometric returns fro compunding. While there are different versions, we will use a formula Bill Sharpe’s Stanford University website (<a href="https://web.stanford.edu/~wfsharpe/mia/rr/mia_rr3.htm" class="uri">https://web.stanford.edu/~wfsharpe/mia/rr/mia_rr3.htm</a>)</p>
-<p>(1+g)^n = ((1+r)^2 - sd<sup>2)</sup>(n/2)</p>
+<p>(1+g)^n = ((1+r)^2 - sd^2) ^ (n/2)</p>
 <p>where g is the geometric return, r is the arithmetric return and sd is the standard deviation.</p>
 <p>The one year standard deviation for the portfolio is calculated as the monthly standard deviation times the square root of 12.</p>
 </div>
@@ -353,6 +353,30 @@ $(document).ready(function () {
 <td align="right">0.41</td>
 <td align="right">0.21</td>
 <td align="right">0.07</td>
+</tr>
+<tr class="even">
+<td>A</td>
+<td align="right">0.68</td>
+<td align="right">3.26</td>
+<td align="right">0.42</td>
+<td align="right">0.24</td>
+<td align="right">0.10</td>
+</tr>
+<tr class="odd">
+<td>B</td>
+<td align="right">0.25</td>
+<td align="right">2.12</td>
+<td align="right">0.45</td>
+<td align="right">0.35</td>
+<td align="right">0.25</td>
+</tr>
+<tr class="even">
+<td>C</td>
+<td align="right">0.56</td>
+<td align="right">2.61</td>
+<td align="right">0.42</td>
+<td align="right">0.24</td>
+<td align="right">0.09</td>
 </tr>
 </tbody>
 </table>
