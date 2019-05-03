@@ -91,14 +91,14 @@ colnames(minport)="Weight"
 minport
 ```
 
-The standard deviation of this portfolio is calculated with the following formula.
+The variance of this portfolio is calculated with the following formula.
 
 $$W' \Sigma W$$
 
-Please calculate the standard deviation of the portfolio.
+Please calculate the standard deviation (the square root of the variance) of the portfolio.
 
 ```{r, echo=F}
-minvol=as.vector(t(minport)%*%covmat%*%minport)
+minvol=as.vector(sqrt(t(minport)%*%covmat%*%minport))
 names(minvol)="Volatility"
 minvol
 ```
@@ -107,9 +107,9 @@ Finally, please calculate the expected return of the minimum variance portfolio 
 
 ```{r, echo=F}
 ervec=apply(mystery[,-1],2,mean)
-er=as.vector(ervec%*%minport)
-names(er)="ExpReturn"
-er
+ermin=as.vector(ervec%*%minport)
+names(ermin)="ExpReturn"
+ermin
 ```
 
 
@@ -123,8 +123,27 @@ This produces relatively which then can be normalized to percentages adding to o
 Using the sample mean returns for the portfolio and 90 day Libor as the expected values, the tangency portfolio is calculated as follows.
 
 ```{r, echo=F}
-
+tanport=as.vector(icovmat%*%(ervec-mean(assets$Cash)))
+tanport=tanport/sum(tanport)
+names(tanport)=c("A","B","C")
+tanport
 ```
+
+Now, please calculate the standard deviation and expected returns of the tangency portfolio.
+
+The expected return is:
+```{r, echo=F}
+ertan=tanport%*%ervec
+ertan
+```
+
+The standard deviation is:
+
+```{r, echo=F}
+tansd=sqrt(tanport%*%covmat%*%tanport)
+tansd
+```
+
 
 
 
