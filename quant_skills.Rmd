@@ -64,14 +64,69 @@ Prepare boxplots to demonstrate the comparative dispersion of the data.
 ggplot(mysterylong,aes(x=Portfolio, y=Return*100))+geom_boxplot()
 ```
 
-Plot probability density functions and compare them to normal distributions.
+Do a density plot comparing the three portfolios.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
 ```
 
 
-## Portfolio Optimization
+## Portfolio Construction
+
+Now we will consider, ways of combining the three mystery assets.
+
+The formula for calculating a minimum volatility portfolio is as follows.
+
+$$\frac{\Sigma^{-1} 1}{1'\Sigma^{-1} 1}$$
+where $\Sigma$ is the covariance matrix.
+
+Using this formula, the minimum variance portfolio weights are:
+
+```{r, echo=F, warning=F, message=F}
+covmat=cov(mystery[,-1])
+icovmat=solve(covmat)
+onevec=(c(1,1,1))
+minport=(icovmat%*%onevec)/as.vector(onevec%*%icovmat%*%onevec)
+colnames(minport)="Weight"
+minport
+```
+
+The standard deviation of this portfolio is calculated with the following formula.
+
+$$W' \Sigma W$$
+
+Please calculate the standard deviation of the portfolio.
+
+```{r, echo=F}
+minvol=as.vector(t(minport)%*%covmat%*%minport)
+names(minvol)="Volatility"
+minvol
+```
+
+Finally, please calculate the expected return of the minimum variance portfolio using the sample mean returns as the expected returns for each of the assets.
+
+```{r, echo=F}
+ervec=apply(mystery[,-1],2,mean)
+er=as.vector(ervec%*%minport)
+names(er)="ExpReturn"
+er
+```
+
+
+Similarly, we can calculate a tangency (max sharpe ratio) portfolio.  The proportionate weights in the tangency portfolio are calculated with the following formula:
+
+$$\Sigma^{-1} (R_p - R_f)$$
+where $R_p$ is a vector of portfolio returns and $R_f$ is the risk free rate.  
+
+This produces relatively which then can be normalized to percentages adding to one.
+
+Using the sample mean returns for the portfolio and 90 day Libor as the expected values, the tangency portfolio is calculated as follows.
+
+```{r, echo=F}
+
+```
+
+
 
 ## Resampling
 
