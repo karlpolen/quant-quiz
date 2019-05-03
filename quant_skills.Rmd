@@ -7,14 +7,78 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+data=read.csv("asset_returns.csv")
+data$Date=as.Date(data$Date,format="%m/%d/%Y")
+data=data[,-1]
+library(tidyr)
+mystery=data[,c("Date","A","B","C")]
+assets=data[,-2:-4]
+mysterylong=gather(mystery,"Portfolio","Return",-Date)
+assetslong=gather(assets,"Asset_Class","Return",-Date)
+library(fBasics)
+library(ggplot2)
 ```
 
-## Greetings
+## Greetings and Instructions
 
 Thank you for applying for the position of Sr. Portfolio Manager -- Equities with the Arizona State Retirement.  At ASRS we run a quantitative style equities portfolio with enhanced index, factor and alpha overlay components.  The person hired for this position will be expected to have very strong quantitative skill sets and the purpose of this exercise is to verify that applicants will be well matched to the requirements of the position.
 
 We have provided sample data in a CSV file called "asset_returns.csv" which was provided in a folder along with this document.  The document you are reading has been provided as both an html and a markdown file.  
 
-You may respond using whatever analytical platform you are comfortable with.  If you use R, Python or another programming language compatible with markdown, you may embed your answers in the markdown.  Please return both the markdown file with code and a compiled HTML version so we can check your answers.  If you use Microsoft products, please provide any excel files you produce with adequate documentation.  If you want, you can link the results of your analysis to a word or powerpoint presentation.
+You may respond using whatever analytical platform you are comfortable with.  If you use R, Python or another programming language compatible with markdown, you may embed your answers in the markdown document.  Please return both the markdown file with code and a compiled HTML version so we can check your answers.  If you use Microsoft products, please provide any excel files you produce with adequate documentation.  If you want, you can link the results of your analysis to a word or powerpoint presentation.
 
-Make sure your answers are readable and well labeled to avoid any confusion in understanding your work.  
+Make sure your answers are readable and well labeled to avoid any confusion in understanding your work. 
+
+You are expected to complete this work on your own.  You may consult the internet or other resources for research but may not collaborate through friends, "stack exchange", social media or otherwise.
+
+There are no trick questions -- these are intended to be a test of your ability to complete straight forward applications of standard analytical methods as taught in advanced undergraduate or graduate courses in finance or statistics.  Keep it simple.
+
+Questions?  Contact Karl Polen at karlp@azasrs.gov
+
+## Background and the Data
+
+The data file contains 60 months of arithmetic returns.  Four of the columns are return data for standard assets -- Stocks (S&P 500), Bonds (BBG Agg), Commodities (BBG Index) and Cash (90 day Libor).  The remaining 3 columns are for mystery portfolios "A", "B" and "C".
+
+The mystery portfolios are represented to be non-correlated to major asset classes.  ASRS is considering investing with them in an alpha overlay program (ported over S&P 500).  We are going to do some analysis in this exam to help form a view on the project.
+
+## Exploratory Data Analysis
+
+Calculate summary statistics on the three mystery portfolios including at least the mean, median, quartiles, min, max, standard deviation, skew and kurtosis.
+
+
+```{r, echo=FALSE, warning=FALSE,message=FALSE}
+basicStats(mystery[,-1])
+```
+
+Test the data for auto correlation.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+acf(data[,"A"])
+acf(data[,"B"])
+acf(data[,"C"])
+```
+
+Prepare boxplots to demonstrate the comparative dispersion of the data.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(mysterylong,aes(x=Portfolio, y=Return*100))+geom_boxplot()
+```
+
+Plot probability density functions and compare them to normal distributions.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
+```
+
+
+## Portfolio Optimization
+
+## Resampling
+
+## Regression
+
+## Conclusion
+
+
+
+
