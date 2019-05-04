@@ -211,6 +211,34 @@ kable(statmat,digits=2)
 
 ## Resampling
 
+We're going to compare the p vals (assuming normal distribution) to bootstrap.  Let's say we decide on the equal weight portfolio.  Let's use a bootstrap method to recalculate the pvals.  Here we go. . .
+
+```{r, echo=F}
+mystery$eq=(mystery$A+mystery$B+mystery$C)/3
+mo1=sum(mystery$eq<0)/60
+yr1vec=vector()
+yr3vec=vector()
+for (i in 1:1000) {
+  s1=mystery$eq[sample(1:60,12,replace=TRUE)]
+  s1ret=-1+prod(1+s1)
+  yr1vec[i]=0>s1ret
+  s3=mystery$eq[sample(1:60,36,replace=TRUE)]
+  s3ret=-1+prod(1+s3)
+  yr3vec[i]=0>s3ret
+}
+yr1=sum(yr1vec)/1000
+yr3=sum(yr3vec)/1000
+ans=c(mo1,yr1,yr3)
+names(ans)=c("Pval_1Mo","Pval_1Yr","Pval_3Yr")
+round(ans,2)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+mysterylong=gather(mystery,"Portfolio","Return",-Date)
+ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
+```
+
+
 ## Regression
 
 ## Conclusion
