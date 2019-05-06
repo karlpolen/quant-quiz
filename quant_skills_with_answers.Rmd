@@ -1,0 +1,248 @@
+---
+title: "Quantitative Skills With Answers
+author: "Karl Polen"
+date: "May 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE,message=F,warning=F}
+knitr::opts_chunk$set(echo = TRUE)
+data=read.csv("asset_returns.csv")
+data$Date=as.Date(data$Date,format="%m/%d/%Y")
+data=data[,-1]
+library(tidyr)
+mystery=data[,c("Date","A","B","C")]
+assets=data[,-2:-4]
+mysterylong=gather(mystery,"Portfolio","Return",-Date)
+assetslong=gather(assets,"Asset_Class","Return",-Date)
+library(fBasics)
+library(ggplot2)
+library(knitr)
+```
+
+## Greetings and Instructions
+
+Thank you for applying for the position of Sr. Portfolio Manager -- Equities with the Arizona State Retirement.  At ASRS we run a quantitative style equities portfolio with enhanced index, factor and alpha overlay components.  The person hired for this position will be expected to have very strong quantitative skill sets and the purpose of this exercise is to verify that applicants will be well matched to the requirements of the position.
+
+We have provided sample data in a CSV file called "asset_returns.csv" which was provided in a folder along with this document.  The document you are reading has been provided as both an html and a markdown file.  
+
+You may respond using whatever analytical platform you are comfortable with.  If you use R, Python or another programming language compatible with markdown, you may embed your answers in the markdown document.  Please return both the markdown file with code and a compiled HTML version so we can check your answers.  If you use Microsoft products, please provide any excel files you produce with adequate documentation.  If you want, you can link the results of your analysis to a word or powerpoint presentation.
+
+Make sure your answers are readable and well labeled to avoid any confusion in understanding your work. 
+
+You are expected to complete this work on your own.  You may consult the internet or other resources for research but may not collaborate through friends, "stack exchange", social media or otherwise.
+
+There are no trick questions -- these are intended to be a test of your ability to complete straight forward applications of standard analytical methods as taught in advanced undergraduate or graduate courses in finance or statistics.  Keep it simple.
+
+Questions?  Contact Karl Polen at karlp@azasrs.gov
+
+## Background and the Data
+
+The data file contains 60 months of arithmetic returns.  Four of the columns are return data for standard assets -- Stocks (S&P 500), Bonds (BBG Agg), Commodities (BBG Index) and Cash (90 day Libor).  The remaining 3 columns are for mystery portfolios "A", "B" and "C".
+
+The mystery portfolios are represented to be non-correlated to major asset classes.  ASRS is considering investing with them in an alpha overlay program (ported over S&P 500).  We are going to do some analysis in this exam to help form a view on the project.
+
+## Exploratory Data Analysis
+
+Calculate summary statistics on the three mystery portfolios including at least the mean, median, quartiles, min, max, standard deviation, skew and kurtosis.
+
+
+```{r, echo=FALSE, warning=FALSE,message=FALSE}
+basicStats(mystery[,-1])
+```
+
+Test the data for auto correlation.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+acf(data[,"A"])
+acf(data[,"B"])
+acf(data[,"C"])
+```
+
+Prepare boxplots to demonstrate the comparative dispersion of the data.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(mysterylong,aes(x=Portfolio, y=Return*100))+geom_boxplot()
+```
+
+Do a density plot comparing the three portfolios.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
+```
+
+
+## Portfolio Construction and Analysis
+
+### Some 3 asset model portfolios
+
+Now we will consider, ways of combining the three mystery assets.
+
+The formula for calculating a minimum volatility portfolio is as follows.
+
+$$\frac{\Sigma^{-1} 1}{1'\Sigma^{-1} 1}$$
+where $\Sigma$ is the covariance matrix.
+
+Using this formula, the minimum variance portfolio weights are:
+
+```{r, echo=F, warning=F, message=F}
+covmat=cov(mystery[,-1])
+icovmat=solve(covmat)
+onevec=(c(1,1,1))
+minport=(icovmat%*%onevec)/as.vector(onevec%*%icovmat%*%onevec)
+colnames(minport)="Weight"
+minport
+```
+
+The variance of this portfolio is calculated with the following formula.
+
+$$W' \Sigma W$$
+
+Please calculate the standard deviation (the square root of the variance) of the portfolio.
+
+```{r, echo=F}
+minvol=as.vector(sqrt(t(minport)%*%covmat%*%minport))
+names(minvol)="Volatility"
+minvol
+```
+
+Finally, please calculate the expected return of the minimum variance portfolio using the sample mean returns as the expected returns for each of the assets.
+
+```{r, echo=F}
+ervec=apply(mystery[,-1],2,mean)
+sdvec=apply(mystery[,-1],2,sd)
+ermin=as.vector(ervec%*%minport)
+names(ermin)="ExpReturn"
+ermin
+```
+
+
+Similarly, we can calculate a tangency (max sharpe ratio) portfolio.  The proportionate weights in the tangency portfolio are calculated with the following formula:
+
+$$\Sigma^{-1} (R_p - R_f)$$
+where $R_p$ is a vector of portfolio returns and $R_f$ is the risk free rate.  
+
+This produces vector of relative weights which then can be normalized to percentages adding to one.
+
+Using the sample mean returns for the portfolio and 90 day Libor as the expected values, the tangency portfolio is calculated as follows.
+
+```{r, echo=F}
+tanport=as.vector(icovmat%*%(ervec-mean(assets$Cash)))
+tanport=tanport/sum(tanport)
+names(tanport)=c("A","B","C")
+tanport
+```
+
+Now, please calculate the standard deviation and expected returns of the tangency portfolio.
+
+The expected return is:
+```{r, echo=F}
+ertan=tanport%*%ervec
+ertan
+```
+
+The standard deviation is:
+
+```{r, echo=F}
+tansd=sqrt(tanport%*%covmat%*%tanport)
+tansd
+```
+
+On your own, calculate the expected return and standard deviation of an equal weight portfolio of the three mystery assets.
+
+### Calculate a one year return and standard deviation from the monthly data
+
+These are volatile arithmetic returns and they need to be adjusted to geometric returns fro compunding.  While there are different versions, we will use a formula Bill Sharpe's Stanford University website (https://web.stanford.edu/~wfsharpe/mia/rr/mia_rr3.htm)
+
+(1+g)^n = ((1+r)^2 - sd^2) ^ (n/2)
+
+where g is the geometric return, r is the arithmetric return and sd is the standard deviation.
+
+The one year standard deviation for the portfolio is calculated as the monthly standard deviation times the square root of 12.
+
+### Now calculate equal weight stats
+
+```{r, echo=FALSE}
+weq=c(1,1,1)/3
+eqsd=sqrt(weq%*%covmat%*%weq)
+eqer=weq%*%ervec
+```
+
+### build a table of comparative weights
+
+```{r, echo=FALSE}
+wmat=cbind(weq,tanport,minport)
+rownames(wmat)=c("A","B","C")
+colnames(wmat)=portnames=c("Equal","Tangency","MinVar")
+kable(wmat,digits=2)
+```
+
+### build a table of portfolio stats
+
+```{r, echo=FALSE}
+ers=c(eqer,ertan,ermin,ervec)*100
+sds=c(eqsd,tansd,minvol,sdvec)*100
+pval_1mo=c(pnorm(0,eqer,eqsd),pnorm(0,ertan,tansd),pnorm(0,ermin,minvol),
+           pnorm(0,ervec[1],sdvec[1]),pnorm(0,ervec[2],sdvec[2]),
+           pnorm(0,ervec[3],sdvec[3]))
+pval_1yr=c(
+  pnorm(0,-1+((1+eqer)^2-eqsd^2)^6,eqsd*sqrt(12)),
+  pnorm(0,-1+((1+ertan)^2-tansd^2)^6,tansd*sqrt(12)),
+  pnorm(0,-1+((1+ermin)^2-minvol^2)^6,minvol*sqrt(12)),
+  pnorm(0,-1+((1+ervec[1])^2-sdvec[1]^2)^6,sdvec[1]*sqrt(12)),
+  pnorm(0,-1+((1+ervec[2])^2-sdvec[2]^2)^6,sdvec[2]*sqrt(12)),
+  pnorm(0,-1+((1+ervec[3])^2-sdvec[3]^2)^6,sdvec[3]*sqrt(12))
+)
+           
+pval_3yr=c(
+  pnorm(0,-1+((1+eqer)^2-eqsd^2)^18,eqsd*sqrt(36)),
+  pnorm(0,-1+((1+ertan)^2-tansd^2)^18,tansd*sqrt(36)),
+  pnorm(0,-1+((1+ermin)^2-minvol^2)^18,minvol*sqrt(36)),
+  pnorm(0,-1+((1+ervec[1])^2-sdvec[1]^2)^18,sdvec[1]*sqrt(36)),
+  pnorm(0,-1+((1+ervec[2])^2-sdvec[2]^2)^18,sdvec[2]*sqrt(36)),
+  pnorm(0,-1+((1+ervec[3])^2-sdvec[3]^2)^18,sdvec[3]*sqrt(36))
+)
+statmat=cbind(ers,sds,pval_1mo,pval_1yr,pval_3yr)
+colnames(statmat)=c("Exp_Return","StdDev","Pval_1Mo","Pval_1Yr","Pval_3Yr")
+rownames(statmat)=c(portnames,"A","B","C")
+kable(statmat,digits=2)
+```
+
+
+## Resampling
+
+We're going to compare the p vals (assuming normal distribution) to bootstrap.  Let's say we decide on the equal weight portfolio.  Let's use a bootstrap method to recalculate the pvals.  Here we go. . .
+
+```{r, echo=F}
+mystery$eq=(mystery$A+mystery$B+mystery$C)/3
+mo1=sum(mystery$eq<0)/60
+yr1vec=vector()
+yr3vec=vector()
+for (i in 1:1000) {
+  s1=mystery$eq[sample(1:60,12,replace=TRUE)]
+  s1ret=-1+prod(1+s1)
+  yr1vec[i]=0>s1ret
+  s3=mystery$eq[sample(1:60,36,replace=TRUE)]
+  s3ret=-1+prod(1+s3)
+  yr3vec[i]=0>s3ret
+}
+yr1=sum(yr1vec)/1000
+yr3=sum(yr3vec)/1000
+ans=c(mo1,yr1,yr3)
+names(ans)=c("Pval_1Mo","Pval_1Yr","Pval_3Yr")
+round(ans,2)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+mysterylong=gather(mystery,"Portfolio","Return",-Date)
+ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
+```
+
+
+## Regression
+
+## Conclusion
+
+
+
+

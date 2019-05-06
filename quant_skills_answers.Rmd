@@ -39,6 +39,17 @@ The mystery portfolios are represented to be non-correlated to major asset class
 
 Manager "A" charges 200bp per annum in fees, manager "B" charges 30bp and and manager "C" charges 100bp.  Read in the data and adjust them for fees assuming they are charged monthly (i.e. 30bp per annum is 2.5bp per month).  
 
+```{r, echo=FALSE}
+data=read.csv("asset_returns.csv")
+data$Date=as.Date(data$Date,format="%m/%d/%Y")
+data=data[,-1]
+data$A=data$A-(.02/12)
+data$B=data$B-(.003/12)
+data$C=data$C-(.01/12)
+mystery=data[,c("Date","A","B","C")]
+assets=data[,-2:-4]
+assetslong=gather(assets,"Asset_Class","Return",-Date)
+```
 
 ## Calculate portfolio weights
 
@@ -51,7 +62,7 @@ rownames(wmat)=portnames
 kable(wmat)
 ```
 
-For avoidance of doubt and to save you a little time, here are the formulas I want you to use.  This is the most vanilla version of how to do this analysis (which absent any constraints is closed form and solvable analytically with calculus and linear algebra).  
+For avoidance of doubt and to save you a little time, here are the formulas I want you to use.  This is the most vanilla version of how to do this analysis (which, absent any constraints, is closed form and solvable analytically with calculus and linear algebra).  
 
 The minimum variance portfolio is calculated with this formula:
 
@@ -66,14 +77,31 @@ You then normalize those weights to percentages adding to one.
 
 In the foregoing formulas $\Sigma$ is the covariance matrix, $1$ is column vector of ones, $R_p$ is the portfolio expected return and $R_f$ is the risk free rate.  Please use the mean return of each portfolio (after deducting fees) as the expected return and the mean value for 90 day Libor as the risk free rate.
 
-
+```{r}
+ones=as.matrix(c(1,1,1))
+covmat=cov(mystery[,-1])
+icovmat=solve(covmat)
+minport=(icovmat%*%ones)/as.vector(t(ones)%*%icovmat%*%ones)
+ervec=apply(mystery[,-1],2,mean)
+tanport=as.vector(icovmat%*%(ervec-mean(assets$Cash)))
+tanport=tanport/sum(tanport)
+wmat$Min_var=minport
+wmat$Tang=tanport
+kable(wmat)
+```
 
 ## Calculate portfolio statistics
 
-Using the weights derived above calculate portfolio returns for the Equal Weight, Minimum Variance and Tangency portfolios.  We now have 60 months of arithmetic returns on 6 portfolios ("A", "B", "C", "Equal Weight", "Min Variance" and "Tangency").  
+Using the weights derived above calculate portfolio returns for the Equal Weight, Minimum Variance and Tangency portfolios.   We now have 60 months of arithmetic returns on 6 portfolios ("A", "B", "C", "Equal Weight", "Min Variance" and "Tangency").  
 
 Please present summary statistics on each of the portfolios including (at least) mean, median, 1st quartile, 3rd quartile, min, max, standard deviation, skewness, kurtosis.
 
+```{r}
+mystery$Eq_wgt=as.matrix(mystery[,c(2,3,4)])%*%as.matrix(wmat$Eq_wgt)
+mystery$Min_var=as.matrix(mystery[,c(2,3,4)])%*%as.matrix(wmat$Min_var)
+mystery$Tang=as.matrix(mystery[,c(2,3,4)])%*%as.matrix(wmat$Tang)
+basicStats(mystery[,-1])
+```
 
 ## Confidence intervals
 
@@ -87,37 +115,95 @@ Please adjust the monthly volatility for longer periods by multiplying by the sq
 
 Create a table calculating the one year and three year p values (i.e. the probability that the cumulative return is less than 0).
 
+```{r}
+p13=function(x) {
+  ans=vector()
+  ans[1]=pnorm(0,-1+((1+mean(x))^2-sd(x)^2)^6,sd(x)*sqrt(12))
+  ans[2]=pnorm(0,-1+((1+mean(x))^2-sd(x)^2)^18,sd(x)*sqrt(36))
+  ans
+}
+pmat=data.frame(lapply(mystery[,-1],p13))
+rownames(pmat)=c("Pval_1yr","Pval_3yr")
+kable(pmat,digits=2)
+```
 
 ## Resampling
 
 Let's examine the impact of the assumption of normality on our analysis.  First, let's plot the data to visually examine how far off this assumption might be.
 
-Prepare boxplots to demonstrate the comparative dispersion of the data. ( https://en.wikipedia.org/wiki/Box_plot )
+Prepare boxplots to demonstrate the comparative dispersion of the data.  ( https://en.wikipedia.org/wiki/Box_plot )
 
-
-
+```{r}
+mysterylong=gather(mystery,"Portfolio","Return",-Date)
+ggplot(mysterylong,aes(x=Portfolio, y=Return*100))+geom_boxplot()
+```
 
 Do a density plot comparing the six portfolios. ( https://en.wikipedia.org/wiki/Probability_density_function )
 
-
+```{r}
+ggplot(mysterylong,aes(x=Return*100,color=Portfolio))+geom_density()
+```
 
 You will observe that the portfolios are not normally distributed.  I have separately confirmed that there is no significant auto correlation in the data and we can proceed with resampling analysis to gain a better understanding of the dispersion and likelihood that th e portfolios will produce positive outcomes.
 
 Do a bootstrap analysis ( https://en.wikipedia.org/wiki/Bootstrapping_(statistics) ) to recalculate the p values above.  (If you are doing this by hand in excel, you can limit this to 100 iterations to keep the file size reasonable.)
 
+```{r}
+pboot13=function(x) {
+  yr1vec=yr3vec=ans=vector()
+  for(i in 1:1000) {
+  s1=x[sample(1:60,12,replace=TRUE)]
+  s1ret=-1+prod(1+s1)
+  yr1vec[i]=0>s1ret
+  s3=x[sample(1:60,36,replace=TRUE)]
+  s3ret=-1+prod(1+s3)
+  yr3vec[i]=0>s3ret
+  }
+  ans[1]=sum(yr1vec)/1000
+  ans[2]=sum(yr3vec)/1000
+  ans
+}
+pbmat=data.frame(lapply(mystery[,-1],pboot13))
+rownames(pbmat)=c("Pval_1yr","Pval_3yr")
+kable(pbmat,digits=2)
+```
 
 ## Regression analysis
 
 First, let's do single regression analysis to calculate standard CAPM statistics.  Let's use a market portfolio of 55% stocks, 40% bonds and 5% commodities.  We will be regressing the excess return of each portfolio against the excess return in the market portfolio.  Display a regression panel that includes t or p values for each regression statistic and an estimate of r-squared.
 
-
+```{r}
+market=as.matrix(assets[,-1])%*%as.matrix(c(-1,.55,.4,.05))
+capm=function(x) {
+  ans=lm((x-assets$Cash)~market)
+  summary(ans)
+}
+lapply(mystery[,-1],capm)
+```
 
 Finally, we will do multiple regression to determine the regression coefficients (i.e. the "betas") relative to the asset classes of cash, stocks, bonds and commodities).
 
-
+```{r}
+multi=function(x) {
+  ans=lm(x~assets$Cash+assets$Stocks+assets$Bonds+assets$Commodities)
+  summary(ans)
+}
+lapply(mystery[,-1],multi)
+```
 
 ## Commentary
 
 Write a few paragraphs with your observations based on this analysis.
 
+It seems to that the interesting portfolios are either "A" on its own or the tangency portfolio which is a combination of "A" and "C".
+
+I like "A" because of its right skewness and because in the simple CAPM analysis it may be a bit negatively correlated to the market (though not statistically significant).
+
+It's interesting how much risk benefit you get by combining "C" with "A".  "C" on its own is not immediately attractive.  When you look at the density function, it's maximum likelihood is below zero and under simple regression it has a statistically significant positive beta to a market portfolio.  But when you combine it with "A", you have a portfolio that has 90% chance of positive returns after 3 years which much better than either portfolio on its own.
+
+It's also interesting that the minvol portfolio has little attraction.  The return penalty is too high for the risk reduction.  On a resampling analysis, you have a higher probability of losing money than you would have with the tangency portfolio.
+
+Reviewing the regression analysis, the r-squareds are low for portfolios "A" and "B".  They seem to have low market correlation, as advertised.  As noted above, portfolio "C" has market correlation with statistically significant .26 beta to stocks and 1.34 beta to bonds.
+
+Based on data presented, the case for investing in these strategies is weak with significant risk of disappointment.  If you were to proceed, "A" alone (for its high return, low correlation and possible negative market beta) or a combination of "A" and "C" (for its risk mitigation compared to "A" alone) would be your better choices.
 
